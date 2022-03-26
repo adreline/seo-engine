@@ -1,0 +1,6 @@
+{
+    "type": "module",
+    "dependencies": {
+        "js-markov": "^3.0.3"
+    }
+}

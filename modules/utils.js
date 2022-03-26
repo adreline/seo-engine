@@ -1,4 +1,4 @@
-exports.arraySize = function (ar){
+export function arraySize(ar){
   let j = 0
   try {
     ar.forEach((item, i) => {

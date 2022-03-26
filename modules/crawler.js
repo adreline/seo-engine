@@ -1,8 +1,9 @@
-const axios = require('axios')
-const nodehtmlparser = require('node-html-parser')
-const async = require("async")
-const colors = require("colors")
-const utils = require("./utils.js")
+import axios from "axios"
+import nodehtmlparser from "node-html-parser"
+import async from "async"
+import colors from "colors"
+
+import { arraySize } from "./utils.js"
 
 let keyword_candidates=[]
 
@@ -66,12 +67,12 @@ const getCandidates = function(uri,callback){
     })
 }
 
-exports.scrape = function(uris, callback){
+export default function scrape(uris, callback){
 
   async.each(uris, getCandidates)
   .then( () => {
       console.log('All pages analysed'.green);
-      console.log(`${utils.arraySize(keyword_candidates)}`.grey);
+      console.log(`${arraySize(keyword_candidates)}`.grey);
       callback(keyword_candidates)
   }).catch( err => {
       console.log(err);
