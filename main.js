@@ -8,8 +8,5 @@ let uris = ['https://elixirschool.com/en','https://elixirschool.com/en/lessons/e
 scrape(uris, (keyword_candidates) => {
   console.log(keyword_candidates)
   console.log(`Received data! ${arraySize(keyword_candidates)}`.brightGreen)
-  process(keyword_candidates, (result)=>{
-    console.log(`Finished processing words`.brightGreen);
-    console.log(result);
-  })
+
 })
