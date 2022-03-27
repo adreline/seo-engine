@@ -39,7 +39,7 @@ function gatherTextNodes(array_or_node){
 }
 
 const getCandidates = function(uri,callback){
-  console.log(`${uri}`.blue);
+  console.log(`Target: ${uri}`.blue);
   axios
     .get(uri)
     .then(html_response => {
