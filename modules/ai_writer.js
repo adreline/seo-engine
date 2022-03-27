@@ -2,7 +2,7 @@ import axios from "axios"
 import colors from "colors"
 
 // Set config defaults when creating the instance
-const instance = axios.create({
+const ai = axios.create({
   baseURL: 'https://sassbook.com'
 });
 const recap_api = "/api/sum/v2"
@@ -37,8 +37,8 @@ export function refreshToken(callback){
   .then(function (response){
     if (!(response.data.access_token === 'undefined')) {
       let token = `${response.data.token_type} ${response.data.access_token}`
-      instance.defaults.headers.common['Authorization'] = token
-      console.log(`New token applied, type = ${response.data.token_type}`.brightGreen)
+      ai.defaults.headers.common['Authorization'] = token
+      console.log(`New token applied, token = ${token.substr(0,20)}(...)`.green)
       callback(true)
     }else {
       console.log(`failed to get token`.red)
@@ -63,7 +63,7 @@ export function write({prompt, keywords, num},callback){
     params.alts=num
   }
   //make a request
-  axios.post(writer_api, params)
+  ai.post(writer_api, params)
   .then(function (response){
     callback({
       paragraphs: response.data.genList,
@@ -71,17 +71,32 @@ export function write({prompt, keywords, num},callback){
     })
   })
   .catch(function (error){
-    //failed, try to refresh auth token
-    console.log(`${error.response.data}`.red)
-    refreshToken((res)=>{
-      if (res) {
-        //all good, try again
-        write({prompt, keywords, num},callback)
-      }else {
-        //couldnt get new token
-        throw "Couldn't get new auth token"
-      }
-    })
+    switch (error.response.status) {
+      case 429:
+        //codename too many requests
+        console.log(`${error.response.statusText}`.red)
+        callback("n/a")
+      break
+      case 403:
+        //codename auth error
+        console.log(`${error.response.data}`.red)
+        //try to refresh auth token
+        refreshToken((res)=>{
+          if (res) {
+            //all good, try again
+            write({prompt, keywords, num},callback)
+          }else {
+            //couldnt get new token
+            throw "Couldn't get new auth token"
+          }
+        })
+      break
+      default:
+        console.log(error)
+        callback("n/a")
+      break
+    }
+
 
   })
 }
@@ -95,23 +110,38 @@ export function recap({paragraph,method},callback){
       params.method = method
     }
     //make a request
-      instance.post(recap_api, params)
+      ai.post(recap_api, params)
       .then(function (response){
         //success, return data to main thread
         callback(response.data)
       })
       .catch(function (error){
-        //failed, try to refresh auth token
-        console.log(`${error.response.data}`.red)
-        refreshToken((res)=>{
-          if (res) {
-            //all good, try again
-            recap({paragraph,method},callback)
-          }else {
-            //couldnt get new token
-            throw "Couldn't get new auth token"
-          }
-        })
+
+        switch (error.response.status) {
+          case 429:
+            //codename too many requests
+            console.log(`${error.response.statusText}`.red)
+            callback("n/a")
+          break
+          case 403:
+            //codename auth error
+            console.log(`${error.response.data}`.red)
+            //try to refresh auth token
+            refreshToken((res)=>{
+              if (res) {
+                //all good, try again
+                recap({paragraph,method},callback)
+              }else {
+                //couldnt get new token
+                throw "Couldn't get new auth token"
+              }
+            })
+          break
+          default:
+            console.log(error)
+            callback("n/a")
+          break
+        }
 
       })
 

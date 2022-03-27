@@ -3,6 +3,7 @@ import colors from 'colors'
 import { arraySize as sizeof } from './utils.js'
 import { write as writeMetaDesc, recap as writeMetaTitle } from './ai_writer.js'
 import translateAll from './translate.js'
+import { language as languages } from './translate.js'
 
 let index = {
   paragraphs: [],
@@ -38,21 +39,24 @@ export default function process(keyword_candidates, callback){
   console.log(`Extracted ${sizeof(index.keywords)} keywords`.yellow)
   //make head section proposal
   //first translate paragraphs into english
-  translateAll(index.paragraphs,english,(translation_results)=>{
+  translateAll(index.paragraphs,languages.english,(translation_results)=>{
     //translation is done, use ai to write meta desc and meta title
     console.log("Paragraphs translated")
     let article = "" //concat all paragraphs to make title summary
     translation_results.forEach((item, i) => {
       article+=item
     });
+    
     //call the ai
     writeMetaTitle({paragraph: article},(result)=>{
       console.log(`AI title proposal: ${result}`.yellow)
+      writeMetaDesc({prompt: article}, (result)=>{
+        console.log(`AI description proposal: ${result}`.yellow)
+          callback()
+      })
     })
-    writeMetaDesc({prompt: article}, (result)=>{
-      console.log(`AI description proposal: ${result}`.yellow)
-    })
+    //callback()
   })
 
-  callback(index)
+
 }

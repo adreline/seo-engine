@@ -13,7 +13,7 @@ function gatherTextNodes(array_or_node){
   if (!(typeof array_or_node._rawText === 'undefined')) {
     //its a text_node
     //do some formatting
-    let candidate = array_or_node._rawText.trim()
+    let candidate = array_or_node._rawText.trim().replace(/[\\$'"`”„]/g, " ")
     if (candidate.length>2 && affirmNode(array_or_node)) {
       keyword_candidates.push(candidate)
     }
