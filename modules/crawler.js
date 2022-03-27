@@ -3,34 +3,34 @@ import nodehtmlparser from "node-html-parser"
 import async from "async"
 import colors from "colors"
 
-import { arraySize } from "./utils.js"
+import { arraySize, affirmNode } from "./utils.js"
 
 let keyword_candidates=[]
 
-function gatherTextNodes(array_of_nodes){
+function gatherTextNodes(array_or_node){
   //this is a recursive function which walks over html dom tree searching for _rawText.
   //test for TextNode
-  if (!(typeof array_of_nodes._rawText === 'undefined')) {
+  if (!(typeof array_or_node._rawText === 'undefined')) {
     //its a text_node
     //do some formatting
-    let candidate = array_of_nodes._rawText.trim()
-    if (candidate.length>2) {
+    let candidate = array_or_node._rawText.trim()
+    if (candidate.length>2 && affirmNode(array_or_node)) {
       keyword_candidates.push(candidate)
     }
     //text_node cant have child nodes, return
     return true;
   }
-  //determine if array_of_nodes is an array or object
-  if (typeof array_of_nodes.length === 'undefined') {
+  //determine if array_or_node is an array or object
+  if (typeof array_or_node.length === 'undefined') {
     //it is object, look for child nodes or text node
     //look for more nodes
-    if (!(typeof array_of_nodes.childNodes === 'undefined') && array_of_nodes.childNodes.length > 0) {
+    if (!(typeof array_or_node.childNodes === 'undefined') && array_or_node.childNodes.length > 0) {
       //we have some more nodes to iterate over, make a recursive call
-      gatherTextNodes(array_of_nodes.childNodes)
+      gatherTextNodes(array_or_node.childNodes)
     }
   }else {
     //it is an array
-    array_of_nodes.forEach((html_object, i) => {
+    array_or_node.forEach((html_object, i) => {
       //just call itself, the funct knows what to do
       gatherTextNodes(html_object)
     });
@@ -39,6 +39,7 @@ function gatherTextNodes(array_of_nodes){
 }
 
 const getCandidates = function(uri,callback){
+  console.log(`${uri}`.blue);
   axios
     .get(uri)
     .then(html_response => {
@@ -59,15 +60,11 @@ const getCandidates = function(uri,callback){
               ]
           ]
       */
-      let total_nodes = 0
-      let discarded_nodes = 0
       try {
         gatherTextNodes(root)
       } catch (e) {
         console.log(e);
       } finally {
-        console.log(`${uri}`.blue);
-        console.log(`Analysed nodes: ${total_nodes} | Discarded: ${discarded_nodes}`)
         callback()
       }
 
@@ -83,7 +80,6 @@ export default function scrape(uris, callback){
   async.each(uris, getCandidates)
   .then( () => {
       console.log('All pages analysed'.green);
-      console.log(`${arraySize(keyword_candidates)}`.grey);
       callback(keyword_candidates)
   }).catch( err => {
       console.log(err);
