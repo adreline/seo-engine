@@ -1,13 +1,14 @@
 import axios from "axios"
 import nodehtmlparser from "node-html-parser"
+import crypto from "crypto"
 import async from "async"
 import colors from "colors"
 
-import { arraySize, affirmNode } from "./utils.js"
+import { arraySize, affirmNode, suspended_log } from "./utils.js"
 
-let keyword_candidates=[]
+let pages = new Map()
 
-function gatherTextNodes(array_or_node){
+function gatherTextNodes(array_or_node,job_id){
   //this is a recursive function which walks over html dom tree searching for _rawText.
   //test for TextNode
   if (!(typeof array_or_node._rawText === 'undefined')) {
@@ -15,7 +16,7 @@ function gatherTextNodes(array_or_node){
     //do some formatting
     let candidate = array_or_node._rawText.trim().replace(/[\\$'"`”„]/g, " ")
     if (candidate.length>2 && affirmNode(array_or_node)) {
-      keyword_candidates.push(candidate)
+      pages.get(job_id).dictionary.push(candidate)
     }
     //text_node cant have child nodes, return
     return true;
@@ -26,25 +27,33 @@ function gatherTextNodes(array_or_node){
     //look for more nodes
     if (!(typeof array_or_node.childNodes === 'undefined') && array_or_node.childNodes.length > 0) {
       //we have some more nodes to iterate over, make a recursive call
-      gatherTextNodes(array_or_node.childNodes)
+      gatherTextNodes(array_or_node.childNodes,job_id)
     }
   }else {
     //it is an array
     array_or_node.forEach((html_object, i) => {
       //just call itself, the funct knows what to do
-      gatherTextNodes(html_object)
+      gatherTextNodes(html_object,job_id)
     });
 
   }
 }
 
 const getCandidates = function(uri,callback){
-  console.log(`Target: ${uri}`.blue);
+  suspended_log(`GET ${uri}`.red)
+  let job_id=crypto.randomUUID()
+  pages.set(job_id,{
+    id: job_id,
+    link: `${uri}`,
+    title: '',
+    desc: '',
+    dictionary: []
+  })
   axios
     .get(uri)
     .then(html_response => {
 
-      const root = nodehtmlparser.parse(html_response.data);
+      const dom = nodehtmlparser.parse(html_response.data)
       /*
       Okay, i figured the data structure out. First we have Selectors array, lower is array of all objects found by querySelectorAll then
       those objects hold a childNodes array full of Objects of type TextNode.
@@ -61,7 +70,7 @@ const getCandidates = function(uri,callback){
           ]
       */
       try {
-        gatherTextNodes(root)
+        gatherTextNodes(dom,job_id)
       } catch (e) {
         console.log(e);
       } finally {
@@ -76,11 +85,11 @@ const getCandidates = function(uri,callback){
 }
 
 export default function scrape(uris, callback){
-
+//this is a public function that can be called from main thread
   async.each(uris, getCandidates)
   .then( () => {
-      console.log('All pages analysed'.green);
-      callback(keyword_candidates)
+      console.log('\nAll pages fetched'.green)
+      callback(pages)
   }).catch( err => {
       console.log(err);
   });
