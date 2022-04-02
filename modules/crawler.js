@@ -54,21 +54,11 @@ const getCandidates = function(uri,callback){
     .then(html_response => {
 
       const dom = nodehtmlparser.parse(html_response.data)
-      /*
-      Okay, i figured the data structure out. First we have Selectors array, lower is array of all objects found by querySelectorAll then
-      those objects hold a childNodes array full of Objects of type TextNode.
-      Selectors[
-              Nodes[
-                  Object{
-                      childNodes[
-                        TextNode{
-                          _rawText
-                      }
-                    ]
-                  }
-              ]
-          ]
-      */
+      if(!nodehtmlparser.valid(html_response.data)){
+        throw new Error('html response returned invalid html')
+      }
+
+      console.log(dom)
       try {
         gatherTextNodes(dom,job_id)
       } catch (e) {
